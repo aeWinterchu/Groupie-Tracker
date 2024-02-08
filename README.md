@@ -1,7 +1,5 @@
 # Sujet Projet Groupie-Tracker
 
-# Groupie Tracker
-
 ## Objectives
 
 Groupie Trackers consists on receiving a given API and manipulate the data contained in it, in order to create a application, displaying the information.
