@@ -7,12 +7,6 @@ import (
 	"fyne.io/fyne/widget"
 )
 
-type GroupieTracker struct {
-	Artists   []string
-	Locations []string
-	Dates     []string
-}
-
 func main() {
 	myApp := app.New()
 	myWindow := myApp.NewWindow("Groupie-Tracker")
