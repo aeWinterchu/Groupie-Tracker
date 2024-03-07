@@ -1,4 +1,4 @@
-package Classe ;
+package core
 
 import (
 	"encoding/json"
