@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"fyne.io/fyne"
 	"fyne.io/fyne/app"
@@ -40,28 +41,46 @@ func main() {
 		}
 
 		// Display fetched data
-		var artistsContent []fyne.CanvasObject
+		var artistButtons []*widget.Button
 		for _, artist := range artists {
-			artistLabel := widget.NewLabel(fmt.Sprintf("Name: %s", artist.Name))
-			artistsContent = append(artistsContent, artistLabel)
+			artist := artist // Create a new variable to avoid closure-related issues
+			artistButton := widget.NewButton(artist.Name, func() {
+				// Handle button click action, for example, open artist's link
+				if artist.Link != "" {
+					url, err := url.Parse(artist.Link)
+					if err != nil {
+						fmt.Println("Error parsing URL:", err)
+						return
+					}
+					if err := fyne.CurrentApp().OpenURL(url); err != nil {
+						fmt.Println("Error opening URL:", err)
+					}
+				}
+			})
+			artistButtons = append(artistButtons, artistButton)
 		}
 
 		// Create back button
-		backButton := widget.NewButton("Back", func() {
-			showHomePage()
-		})
+		var artistObjects []fyne.CanvasObject
+for _, artistButton := range artistButtons {
+    artistObjects = append(artistObjects, artistButton)
+}
 
-		artistsContent = append(artistsContent, backButton)
+// Create back button
+backButton := widget.NewButton("Back", func() {
+    showHomePage()
+})
+artistObjects = append(artistObjects, backButton)
 
-		scrollableContent := container.NewVBox(
-			artistsContent...,
-		)
-
+scrollableContent := container.NewVBox(
+    artistObjects...,
+)
 		// Make the content scrollable
 		scrollContainer := container.NewScroll(scrollableContent)
 
 		myWindow.SetContent(scrollContainer)
 	}
+
 	showHomePage = func() {
 		// Create buttons
 		artistsButton := widget.NewButton("Artists", func() {
