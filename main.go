@@ -27,60 +27,69 @@ func main() {
 
     var showHomePage func()
     showArtistsPage := func() {
-        // Make HTTP request to fetch data from the artists API
-        resp, err := http.Get("https://groupietrackers.herokuapp.com/api/artists")
-        if err != nil {
-            fmt.Println("Error fetching data:", err)
-            return
-        }
-        defer resp.Body.Close()
-
-        var artists []Artist
-        if err := json.NewDecoder(resp.Body).Decode(&artists); err != nil {
-            fmt.Println("Error decoding response:", err)
-            return
-        }
-
-        // Display fetched data
-        var artistButtons []*widget.Button
-        for _, artist := range artists {
-            artist := artist // Create a new variable to avoid closure-related issues
-            artistButton := widget.NewButton(artist.Name, func() {
-                // Handle button click action, for example, open artist's link
-                if artist.Link != "" {
-                    url, err := url.Parse(artist.Link)
-                    if err != nil {
-                        fmt.Println("Error parsing URL:", err)
-                        return
-                    }
-                    if err := fyne.CurrentApp().OpenURL(url); err != nil {
-                        fmt.Println("Error opening URL:", err)
-                    }
-                }
-            })
-            artistButtons = append(artistButtons, artistButton)
-        }
-
-        // Create back button
-        var artistObjects []fyne.CanvasObject
-        for _, artistButton := range artistButtons {
-            artistObjects = append(artistObjects, artistButton)
-        }
-
-        // Create back button
-        backButton := widget.NewButton("Back", func() {
-            showHomePage()
-        })
-        artistObjects = append(artistObjects, backButton)
-
-        scrollableContent := container.NewVBox(
-            artistObjects...,
-        )
-        // Make the content scrollable
-        scrollContainer := container.NewScroll(scrollableContent)
-
-        myWindow.SetContent(scrollContainer)
-    }
+		// Make HTTP request to fetch data from the artists API
+		resp, err := http.Get("https://groupietrackers.herokuapp.com/api/artists")
+		if err != nil {
+			fmt.Println("Error fetching data:", err)
+			return
+		}
+		defer resp.Body.Close()
+	
+		var artists []Artist
+		if err := json.NewDecoder(resp.Body).Decode(&artists); err != nil {
+			fmt.Println("Error decoding response:", err)
+			return
+		}
+	
+		// Display fetched data
+		var artistButtons []*widget.Button
+		for _, artist := range artists {
+			artist := artist // Create a new variable to avoid closure-related issues
+			artistButton := widget.NewButton(artist.Name, func() {
+				// Handle button click action, for example, open artist's link
+				if artist.Link != "" {
+					url, err := url.Parse(artist.Link)
+					if err != nil {
+						fmt.Println("Error parsing URL:", err)
+						return
+					}
+					if err := fyne.CurrentApp().OpenURL(url); err != nil {
+						fmt.Println("Error opening URL:", err)
+					}
+				}
+			})
+			artistButtons = append(artistButtons, artistButton)
+		}
+	
+		// Create back button
+		backButton := widget.NewButton("Back", func() {
+			showHomePage()
+		})
+	
+		// Create search bar
+		searchEntry := widget.NewEntry()
+		searchEntry.SetPlaceHolder("Search artist by name")
+	
+		searchButton := widget.NewButton("Search", func() {
+			// Call your search function here with the search term
+			searchTerm := searchEntry.Text
+			searchForArtist(searchTerm)
+		})
+	
+		// Create content container with artist buttons and search bar
+		content := container.NewVBox(
+			searchEntry,
+			searchButton,
+		)
+		for _, artistButton := range artistButtons {
+			content.Add(artistButton)
+		}
+		content.Add(backButton)
+	
+		// Make the content scrollable
+		scrollContainer := container.NewScroll(content)
+		myWindow.SetContent(scrollContainer)
+	}
 	var artists []Artist
 	showHomePage = func() {
         // Créez une Entry pour saisir le texte de recherche
@@ -137,4 +146,30 @@ func searchBarre(artists []Artist,name string) {
 
     // Faire quelque chose avec les artistes correspondants
     fmt.Println(correctArtists)
+}
+func searchForArtist(searchTerm string) {
+    // Make HTTP request to fetch data from the artists API
+    resp, err := http.Get("https://groupietrackers.herokuapp.com/api/artists")
+    if err != nil {
+        fmt.Println("Error fetching data:", err)
+        return
+    }
+    defer resp.Body.Close()
+
+    var artists []Artist
+    if err := json.NewDecoder(resp.Body).Decode(&artists); err != nil {
+        fmt.Println("Error decoding response:", err)
+        return
+    }
+
+    // Filter artists based on the search term
+    var filteredArtists []Artist
+    for _, artist := range artists {
+        if strings.Contains(strings.ToLower(artist.Name), strings.ToLower(searchTerm)) {
+            filteredArtists = append(filteredArtists, artist)
+        }
+    }
+
+    // Display filtered artists or do something else with them
+    fmt.Println(filteredArtists)
 }
