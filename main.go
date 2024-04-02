@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"fyne.io/fyne"
 	"fyne.io/fyne/app"
 	"fyne.io/fyne/container"
 	"fyne.io/fyne/widget"
-	"strings"
 )
 
 type Artist struct {
@@ -21,12 +21,12 @@ type Artist struct {
 }
 
 func main() {
-    myApp := app.New()
-    myWindow := myApp.NewWindow("Groupie-Tracker")
-    myWindow.Resize(fyne.NewSize(500, 650))
+	myApp := app.New()
+	myWindow := myApp.NewWindow("Groupie-Tracker")
+	myWindow.Resize(fyne.NewSize(500, 650))
 
-    var showHomePage func()
-    showArtistsPage := func() {
+	var showHomePage func()
+	showArtistsPage := func() {
 		// Make HTTP request to fetch data from the artists API
 		resp, err := http.Get("https://groupietrackers.herokuapp.com/api/artists")
 		if err != nil {
@@ -34,13 +34,13 @@ func main() {
 			return
 		}
 		defer resp.Body.Close()
-	
+
 		var artists []Artist
 		if err := json.NewDecoder(resp.Body).Decode(&artists); err != nil {
 			fmt.Println("Error decoding response:", err)
 			return
 		}
-	
+
 		// Display fetched data
 		var artistButtons []*widget.Button
 		for _, artist := range artists {
@@ -60,22 +60,22 @@ func main() {
 			})
 			artistButtons = append(artistButtons, artistButton)
 		}
-	
+
 		// Create back button
 		backButton := widget.NewButton("Back", func() {
 			showHomePage()
 		})
-	
+
 		// Create search bar
 		searchEntry := widget.NewEntry()
 		searchEntry.SetPlaceHolder("Search artist by name")
-	
+
 		searchButton := widget.NewButton("Search", func() {
 			// Call your search function here with the search term
 			searchTerm := searchEntry.Text
-			searchForArtist(searchTerm)
+			searchBarre(artists, searchTerm, myApp) // Pass the fyne.App instance
 		})
-	
+
 		// Create content container with artist buttons and search bar
 		content := container.NewVBox(
 			searchEntry,
@@ -85,91 +85,77 @@ func main() {
 			content.Add(artistButton)
 		}
 		content.Add(backButton)
-	
+
 		// Make the content scrollable
 		scrollContainer := container.NewScroll(content)
 		myWindow.SetContent(scrollContainer)
 	}
 	var artists []Artist
 	showHomePage = func() {
-        // Créez une Entry pour saisir le texte de recherche
-        searchEntry := widget.NewEntry()
-        searchEntry.SetPlaceHolder("Search artist by name")
+		// Créez une Entry pour saisir le texte de recherche
+		searchEntry := widget.NewEntry()
+		searchEntry.SetPlaceHolder("Search artist by name")
 
-        // Créez un bouton pour déclencher la recherche
-        searchButton := widget.NewButton("Search", func() {
-            // Appeler la fonction searchBarre avec la liste des artistes et le texte saisi comme arguments
-            searchBarre(artists, searchEntry.Text)
-        })
+		// Créez un bouton pour déclencher la recherche
+		searchButton := widget.NewButton("Search", func() {
+			// Appeler la fonction searchBarre avec la liste des artistes et le texte saisi comme arguments
+			searchBarre(artists, searchEntry.Text, myApp) // Pass the fyne.App instance
+		})
 
-        // Créez un bouton pour afficher la liste des artistes
-        artistsButton := widget.NewButton("Artists", func() {
-            showArtistsPage()
-        })
+		// Créez un bouton pour afficher la liste des artistes
+		artistsButton := widget.NewButton("Artists", func() {
+			showArtistsPage()
+		})
 
-        // Créez un bouton pour quitter l'application
-        quitButton := widget.NewButton("Quit", func() {
-            myApp.Quit()
-        })
+		// Créez un bouton pour quitter l'application
+		quitButton := widget.NewButton("Quit", func() {
+			myApp.Quit()
+		})
 
-        // Ajoutez les widgets à la boîte de contenu
-        content := container.NewVBox(
-            widget.NewLabel("Hello!"),
-            searchEntry,
-            searchButton,
-            artistsButton,
-            quitButton,
-        )
+		// Ajoutez les widgets à la boîte de contenu
+		content := container.NewVBox(
+			searchEntry,
+			searchButton,
+			artistsButton,
+			quitButton,
+		)
 
-        myWindow.SetContent(content)
-    }
+		myWindow.SetContent(content)
+	}
 
-    showHomePage() // Appelez showHomePage pour afficher la page d'accueil
+	showHomePage() // Appelez showHomePage pour afficher la page d'accueil
 
-    myWindow.ShowAndRun()
+	myWindow.ShowAndRun()
 }
-
 
 // Func pour la barre de recherche
-func searchBarre(artists []Artist,name string) {
-    // Convertir le nom saisi en minuscules pour une recherche insensible à la casse
-    search := strings.ToLower(name)
+func searchBarre(artists []Artist, name string, myApp fyne.App) {
+	// Convertir le nom saisi en minuscules pour une recherche insensible à la casse
+	search := strings.ToLower(name)
 
-    // Boucler à travers les artistes pour trouver ceux qui correspondent au terme de recherche
-    var correctArtists []Artist
-    
-    for _, artist := range artists {
-        if strings.Contains(strings.ToLower(artist.Name), search) {
-            correctArtists = append(correctArtists, artist)
-        }
-    }
+	// Boucler à travers les artistes pour trouver ceux qui correspondent au terme de recherche
+	var correctArtists []Artist
 
-    // Faire quelque chose avec les artistes correspondants
-    fmt.Println(correctArtists)
-}
-func searchForArtist(searchTerm string) {
-    // Make HTTP request to fetch data from the artists API
-    resp, err := http.Get("https://groupietrackers.herokuapp.com/api/artists")
-    if err != nil {
-        fmt.Println("Error fetching data:", err)
-        return
-    }
-    defer resp.Body.Close()
+	for _, artist := range artists {
+		if strings.Contains(strings.ToLower(artist.Name), search) {
+			correctArtists = append(correctArtists, artist)
+		}
+	}
 
-    var artists []Artist
-    if err := json.NewDecoder(resp.Body).Decode(&artists); err != nil {
-        fmt.Println("Error decoding response:", err)
-        return
-    }
+	// Créer une nouvelle fenêtre pour afficher les informations des artistes correspondants
+	newWindow := myApp.NewWindow("Search Results")
+	newWindow.Resize(fyne.NewSize(500, 650))
 
-    // Filter artists based on the search term
-    var filteredArtists []Artist
-    for _, artist := range artists {
-        if strings.Contains(strings.ToLower(artist.Name), strings.ToLower(searchTerm)) {
-            filteredArtists = append(filteredArtists, artist)
-        }
-    }
+	// Créer un widget pour afficher les informations des artistes
+	artistInfo := widget.NewLabel("")
 
-    // Display filtered artists or do something else with them
-    fmt.Println(filteredArtists)
+	for _, artist := range correctArtists {
+		artistInfo.SetText(artistInfo.Text + fmt.Sprintf("Artist: %s\nMembers: %s\nOrigin City: %s\nLink: %s\n\n", artist.Name, strings.Join(artist.Members, ", "), artist.OriginCity, artist.Link))
+	}
+
+	// Ajouter le widget à la fenêtre
+	newWindow.SetContent(container.NewScroll(artistInfo))
+
+	// Afficher la nouvelle fenêtre
+	newWindow.Show()
 }
