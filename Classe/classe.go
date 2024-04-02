@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 )
@@ -220,27 +221,56 @@ func FilterDate(artists []Artist, fromDate time.Time, toDate time.Time) []Artist
 
 // filtre par first album
 func FilterAlbum(artists []Artist, fromDate time.Time, toDate time.Time) []Artist {
-	var filteredArtists []Artist
-	for _, artist := range artists {
-		firstAlbumDate, err := time.Parse("2006-01-02", artist.FirstAlbum)
-		if err != nil {
-			log.Printf("Error please check your artist  %s: %v", artist.Name, err)
-			continue
+	
+		// Define a custom type to hold artist and their first album date
+		type ArtistWithFirstAlbumDate struct {
+			Artist
+			FirstAlbumDate time.Time
 		}
-		if firstAlbumDate.After(fromDate) && firstAlbumDate.Before(toDate) {
-			filteredArtists = append(filteredArtists, artist)
+	
+		// Create a slice to hold artists with their first album date
+		var artistsWithFirstAlbumDate []ArtistWithFirstAlbumDate
+	
+		// Iterate over artists and parse first album date
+		for _, artist := range artists {
+			var firstAlbumDate time.Time
+			// Try different date layouts
+			dateFormats := []string{"1000-01-01", "01/01/2024", "1000-01-01T15:04:05Z07:00", "2024-01-01T15:04:05Z"}
+			for _, layout := range dateFormats {
+				parsedDate, err := time.Parse(layout, artist.FirstAlbum)
+				if err == nil {
+					firstAlbumDate = parsedDate
+					break
+				}
+			}
+			// Add artist and first album date to the slice
+			artistsWithFirstAlbumDate = append(artistsWithFirstAlbumDate, ArtistWithFirstAlbumDate{
+				Artist:         artist,
+				FirstAlbumDate: firstAlbumDate,
+			})
 		}
+	
+		// Filter artists based on the specified date range
+		var filteredArtists []ArtistWithFirstAlbumDate
+		for _, artist := range artistsWithFirstAlbumDate {
+			if artist.FirstAlbumDate.After(fromDate) && artist.FirstAlbumDate.Before(toDate) {
+				filteredArtists = append(filteredArtists, artist)
+			}
+		}
+	
+		// Sort artists by first album date in ascending order
+		sort.SliceStable(filteredArtists, func(i, j int) bool {
+			return filteredArtists[i].FirstAlbumDate.Before(filteredArtists[j].FirstAlbumDate)
+		})
+	
+		// Extract and return the sorted artists without first album date
+		var sortedArtists []Artist
+		for _, artist := range filteredArtists {
+			sortedArtists = append(sortedArtists, artist.Artist)
+		}
+	
+		return sortedArtists
 	}
-	return filteredArtists
-}
 
 // filtre pour le concert par localition
-func FilterByLocationsOfConcerts(artists []Artist, location string) []Artist {
-	var filteredArtists []Artist
-	for _, artist := range artists {
-		if strings.Contains(artist.Locations, location) {
-			filteredArtists = append(filteredArtists, artist)
-		}
-	}
-	return filteredArtists
-}
+
