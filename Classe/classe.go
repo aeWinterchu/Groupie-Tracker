@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strings"
 )
 
 type APIResponse struct {
@@ -159,4 +160,45 @@ func Api_Relation() {
 func newFunction(res *http.Response) ([]byte, error) {
 	body, err := ioutil.ReadAll(res.Body)
 	return body, err
+}
+ //func pour avoir tout les info de l'artist tout ensemble
+
+func GetArtistInfo(artistName string) {
+	// Appel de l'API pour récupérer les données des artistes
+	res, err := http.Get("https://groupietrackers.herokuapp.com/api/artists")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer res.Body.Close()
+
+	// Décode les données JSON de la réponse
+	var response APIResponse
+	err = json.NewDecoder(res.Body).Decode(&response)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Recherche de l'artiste spécifié dans la liste des artistes
+	var foundArtist *Artist
+	for _, artist := range response.Artists {
+		if strings.EqualFold(artist.Name, artistName) {
+			foundArtist = &artist
+			break
+		}
+	}
+
+	// Vérifie si l'artiste a été trouvé
+	if foundArtist != nil {
+		// Affichage des informations sur l'artiste trouvé
+		fmt.Printf("Nom: %s\n", foundArtist.Name)
+		fmt.Printf("Image: %s\n", foundArtist.Image)
+		fmt.Printf("Membres: %s\n", strings.Join(foundArtist.Members, ", "))
+		fmt.Printf("Date de création: %d\n", foundArtist.CreationDate)
+		fmt.Printf("Premier album: %s\n", foundArtist.FirstAlbum)
+		fmt.Printf("Lieux de concerts: %s\n", foundArtist.Locations)
+		fmt.Printf("Dates de concerts: %s\n", foundArtist.ConcertDates)
+		fmt.Printf("Relations: %s\n", foundArtist.Relations)
+	} else {
+		fmt.Printf("Artiste '%s' non trouvé.\n", artistName)
+	}
 }
