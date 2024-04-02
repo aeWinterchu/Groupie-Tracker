@@ -1,4 +1,4 @@
-package core
+package Classe
 
 import (
 	"encoding/json"
@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type APIResponse struct {
@@ -161,7 +162,8 @@ func newFunction(res *http.Response) ([]byte, error) {
 	body, err := ioutil.ReadAll(res.Body)
 	return body, err
 }
- //func pour avoir tout les info de l'artist tout ensemble
+
+//func pour avoir tout les info de l'artist tout ensemble
 
 func GetArtistInfo(artistName string) {
 	// Appel de l'API pour récupérer les données des artistes
@@ -201,4 +203,44 @@ func GetArtistInfo(artistName string) {
 	} else {
 		fmt.Printf("Artiste '%s' non trouvé.\n", artistName)
 	}
+}
+
+// /// les filtre
+// filtre par le date de la criation de groupe ou artiste
+func FilterDate(artists []Artist, fromDate time.Time, toDate time.Time) []Artist {
+	var filteredArtists []Artist
+	for _, artist := range artists {
+		creationDate := time.Unix(artist.CreationDate, 0)
+		if creationDate.After(fromDate) && creationDate.Before(toDate) {
+			filteredArtists = append(filteredArtists, artist)
+		}
+	}
+	return filteredArtists
+}
+
+// filtre par first album
+func FilterAlbum(artists []Artist, fromDate time.Time, toDate time.Time) []Artist {
+	var filteredArtists []Artist
+	for _, artist := range artists {
+		firstAlbumDate, err := time.Parse("2006-01-02", artist.FirstAlbum)
+		if err != nil {
+			log.Printf("Error please check your artist  %s: %v", artist.Name, err)
+			continue
+		}
+		if firstAlbumDate.After(fromDate) && firstAlbumDate.Before(toDate) {
+			filteredArtists = append(filteredArtists, artist)
+		}
+	}
+	return filteredArtists
+}
+
+// filtre pour le concert par localition
+func FilterByLocationsOfConcerts(artists []Artist, location string) []Artist {
+	var filteredArtists []Artist
+	for _, artist := range artists {
+		if strings.Contains(artist.Locations, location) {
+			filteredArtists = append(filteredArtists, artist)
+		}
+	}
+	return filteredArtists
 }
