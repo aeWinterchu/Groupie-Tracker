@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"fyne.io/fyne"
@@ -14,6 +13,7 @@ import (
 )
 
 type Artist struct {
+	ID         int      `json:"id"`
 	Name       string   `json:"name"`
 	Members    []string `json:"members"`
 	OriginCity string   `json:"origin_city"`
@@ -26,6 +26,8 @@ func main() {
 	myWindow.Resize(fyne.NewSize(500, 650))
 
 	var showHomePage func()
+	var artists []Artist
+
 	showArtistsPage := func() {
 		// Make HTTP request to fetch data from the artists API
 		resp, err := http.Get("https://groupietrackers.herokuapp.com/api/artists")
@@ -35,7 +37,12 @@ func main() {
 		}
 		defer resp.Body.Close()
 
-		var artists []Artist
+		if resp.StatusCode != http.StatusOK {
+			fmt.Println("Error fetching data, status code:", resp.StatusCode)
+			return
+		}
+
+		// Decode the response JSON
 		if err := json.NewDecoder(resp.Body).Decode(&artists); err != nil {
 			fmt.Println("Error decoding response:", err)
 			return
@@ -44,19 +51,10 @@ func main() {
 		// Display fetched data
 		var artistButtons []*widget.Button
 		for _, artist := range artists {
-			artist := artist // Create a new variable to avoid closure-related issues
+			artist := artist
 			artistButton := widget.NewButton(artist.Name, func() {
-				// Handle button click action, for example, open artist's link
-				if artist.Link != "" {
-					url, err := url.Parse(artist.Link)
-					if err != nil {
-						fmt.Println("Error parsing URL:", err)
-						return
-					}
-					if err := fyne.CurrentApp().OpenURL(url); err != nil {
-						fmt.Println("Error opening URL:", err)
-					}
-				}
+				// Handle button click action to display artist details
+				displayArtistDetails(artist, myApp)
 			})
 			artistButtons = append(artistButtons, artistButton)
 		}
@@ -71,9 +69,9 @@ func main() {
 		searchEntry.SetPlaceHolder("Search artist by name")
 
 		searchButton := widget.NewButton("Search", func() {
-			// Call your search function here with the search term
+			// Call search function here with the search term
 			searchTerm := searchEntry.Text
-			searchBarre(artists, searchTerm, myApp) // Pass the fyne.App instance
+			searchArtists(artists, searchTerm, myApp)
 		})
 
 		// Create content container with artist buttons and search bar
@@ -90,18 +88,8 @@ func main() {
 		scrollContainer := container.NewScroll(content)
 		myWindow.SetContent(scrollContainer)
 	}
-	var artists []Artist
+
 	showHomePage = func() {
-		// Créez une Entry pour saisir le texte de recherche
-		searchEntry := widget.NewEntry()
-		searchEntry.SetPlaceHolder("Search artist by name")
-
-		// Créez un bouton pour déclencher la recherche
-		searchButton := widget.NewButton("Search", func() {
-			// Appeler la fonction searchBarre avec la liste des artistes et le texte saisi comme arguments
-			searchBarre(artists, searchEntry.Text, myApp) // Pass the fyne.App instance
-		})
-
 		// Créez un bouton pour afficher la liste des artistes
 		artistsButton := widget.NewButton("Artists", func() {
 			showArtistsPage()
@@ -114,8 +102,6 @@ func main() {
 
 		// Ajoutez les widgets à la boîte de contenu
 		content := container.NewVBox(
-			searchEntry,
-			searchButton,
 			artistsButton,
 			quitButton,
 		)
@@ -128,28 +114,44 @@ func main() {
 	myWindow.ShowAndRun()
 }
 
-// Func pour la barre de recherche
-func searchBarre(artists []Artist, name string, myApp fyne.App) {
+// Func pour afficher les détails de l'artiste
+func displayArtistDetails(artist Artist, myApp fyne.App) {
+	// Créer une nouvelle fenêtre pour afficher les informations de l'artiste
+	newWindow := myApp.NewWindow("Artist Details")
+	newWindow.Resize(fyne.NewSize(500, 650))
+
+	// Créer un widget pour afficher les informations de l'artiste
+	artistInfo := widget.NewLabel(fmt.Sprintf("Artist: %s\nMembers: %s\nOrigin City: %s\nLink: %s\n", artist.Name, strings.Join(artist.Members, ", "), artist.OriginCity, artist.Link))
+
+	// Ajouter le widget à la fenêtre
+	newWindow.SetContent(container.NewScroll(artistInfo))
+
+	// Afficher la nouvelle fenêtre
+	newWindow.Show()
+}
+
+// Func pour rechercher les artistes par nom
+func searchArtists(artists []Artist, name string, myApp fyne.App) {
 	// Convertir le nom saisi en minuscules pour une recherche insensible à la casse
 	search := strings.ToLower(name)
 
 	// Boucler à travers les artistes pour trouver ceux qui correspondent au terme de recherche
-	var correctArtists []Artist
+	var matchingArtists []Artist
 
 	for _, artist := range artists {
 		if strings.Contains(strings.ToLower(artist.Name), search) {
-			correctArtists = append(correctArtists, artist)
+			matchingArtists = append(matchingArtists, artist)
 		}
 	}
 
-	// Créer une nouvelle fenêtre pour afficher les informations des artistes correspondants
+	// Créer une nouvelle fenêtre pour afficher les résultats de la recherche
 	newWindow := myApp.NewWindow("Search Results")
 	newWindow.Resize(fyne.NewSize(500, 650))
 
-	// Créer un widget pour afficher les informations des artistes
+	// Créer un widget pour afficher les informations des artistes correspondants
 	artistInfo := widget.NewLabel("")
 
-	for _, artist := range correctArtists {
+	for _, artist := range matchingArtists {
 		artistInfo.SetText(artistInfo.Text + fmt.Sprintf("Artist: %s\nMembers: %s\nOrigin City: %s\nLink: %s\n\n", artist.Name, strings.Join(artist.Members, ", "), artist.OriginCity, artist.Link))
 	}
 
