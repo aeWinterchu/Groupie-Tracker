@@ -119,7 +119,7 @@ func main() {
 	menu.SetIcon(icon)
 
 	// Cover window:
-	cover := myApp.NewWindow("cover")
+	cover := myApp.NewWindow("Artist Page")
 	cover.Resize(fyne.NewSize(700, 500))
 	cover.CenterOnScreen()
 	cover.SetIcon(icon)
